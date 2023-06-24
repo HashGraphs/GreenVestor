@@ -11,6 +11,7 @@ const {
   Hbar,
   ContractCreateFlow,
   ContractExecuteTransaction,
+  FileAppendTransaction,
 } = require("@hashgraph/sdk");
 
 const fs = require("fs");
@@ -21,62 +22,120 @@ const operatorKey = PrivateKey.fromString(process.env.PRIVATE_KEY);
 
 const client = Client.forTestnet().setOperator(operatorId, operatorKey);
 
+/*
+Current issue; It says TRANSACTION OVERSIZE, when I call it.
+My solution is to create a file on hedera
+choice? (A) upload a bin file when the hedera file is created. (B) create an empty file. 
+Append the contracts bin files to the file on hedera
+*/
 async function main() {
+  // import the compiled contracts
+  const comBinedContractBytecode = await fs.readFileSync(
+    "GreenVestor_sol_CombinedContract.bin"
+  );
   // import the compiled contract
-  const contractBytecode = await fs.readFileSync(
-    "combinedContract_sol_CombinedContract.bin"
+  const loanContractBytecode = await fs.readFileSync(
+    "GreenVestor_sol_LoanContract.bin"
+  );
+  // import the compiled contract
+  const profitContractBytecode = await fs.readFileSync(
+    "GreenVestor_sol_ProfitDistribution.bin"
+  );
+  // import the compiled contract
+  const projectContractBytecode = await fs.readFileSync(
+    "GreenVestor_sol_ProjectContract.bin"
   );
 
-  // create a file on hedera and store the bytecode
+  // create an empty file on hedera and store the bytecode
   const fileCreateTx = new FileCreateTransaction()
-    .setContents(contractBytecode)
     .setKeys([operatorKey])
     .setMaxTransactionFee(new Hbar(5))
     .freezeWith(client);
   const fileCreateSign = await fileCreateTx.sign(operatorKey);
   const fileCreateSubmit = await fileCreateSign.execute(client);
   const fileCreateRx = await fileCreateSubmit.getReceipt(client);
-  const bytecodeFileId = fileCreateRx.fileId;
-  console.log(`- The bytecode file ID is: ${bytecodeFileId} \n`);
+  const greenFileId = fileCreateRx.fileId;
+  console.log(`- The bytecode file ID is: ${greenFileId} \n`);
 
-  // const contractCreate = new ContractCreateFlow()
-  //   .setGas(100000)
-  //   .setBytecode(contractBytecode);
-  // const fileCreateSign = await contractCreate.execute(client);
-  // const fileCreateRx = await fileCreateSign.getReceipt(client);
-  // const bytecodeFileId = fileCreateRx.fileId;
-  // console.log(`- The bytecode file ID is: ${bytecodeFileId} \n`);
+  // Append the Loan contract bin files of all contracts
+  const appendLoanTx = await new FileAppendTransaction()
+    .setFileId(greenFileId)
+    .setContents(loanContractBytecode)
+    .setMaxTransactionFee(new Hbar(2))
+    .freezeWith(client);
+  const signTx = await appendLoanTx.sign(operatorKey);
+  const txResponse = await signTx.execute(client);
 
-  // instantiate the smart contract
+  //Request the receipt
+  const receipt = await txResponse.getReceipt(client);
 
-  // const contractInstantiateTx = new ContractCreateTransaction()
-  //   .setBytecodeFileId(bytecodeFileId)
-  //   .setGas(100000);
-  // const contractInstantiateSubmit = await contractInstantiateTx.execute(client);
-  // const contractInstantiateRx = await contractInstantiateSubmit.getReceipt(
-  //   client
-  // );
-  // const contractId = contractInstantiateRx.contractId;
-  // const contractAddress = contractId.toSolidityAddress();
-  // console.log(` The smart contract Id is: ${contractId} \n`);
-  // console.log(`The smart contract address is: ${contractAddress}`);
+  //Get the transaction consensus status
+  const transactionStatus = receipt.status;
 
-  //   // query the smart
-  //   const contractQueryTx = new ContractCallQuery()
-  //     .setContractId(contractId)
-  //     .setGas(100000)
-  //     .setFunction(
-  //       "getMobileNumber",
-  //       new ContractFunctionParameters().addString("Tame")
-  //     )
-  //     .setMaxQueryPayment(new Hbar(5)); // Hbar(0.00000005)
-  //   const contractQuerySubmit = await contractQueryTx.execute(client);
-  //   const contractQueryResult = contractQuerySubmit.getUint256(0);
-  //   console.log(` Here's the number you asked for : ${contractQueryResult} \n`);
+  console.log(
+    "The loan contract append transaction consensus status is " +
+      transactionStatus
+  );
 
-  // call contract function to update state variable
+  // Append the profit contract bin files of all contracts
+  const appendProfitTx = await new FileAppendTransaction()
+    .setFileId(greenFileId)
+    .setContents(profitContractBytecode)
+    .setMaxTransactionFee(new Hbar(2))
+    .freezeWith(client);
+  const signProfitTx = await appendProfitTx.sign(operatorKey);
+  const profitTxResponse = await signProfitTx.execute(client);
 
-  // query the contract to get changes in state variable
+  //Request the receipt
+  const profitReceipt = await profitTxResponse.getReceipt(client);
+
+  //Get the transaction consensus status
+  const profitTransactionStatus = profitReceipt.status;
+
+  console.log(
+    "The profit contract append transaction consensus status is " +
+      profitTransactionStatus
+  );
+
+  // Append project contract bin file, projectContractBytecode
+  const appendProjectTx = await new FileAppendTransaction()
+    .setFileId(greenFileId)
+    .setContents(projectContractBytecode)
+    .setMaxTransactionFee(new Hbar(2))
+    .freezeWith(client);
+  const signProjectTx = await appendProjectTx.sign(operatorKey);
+  const projectTxResponse = await signProjectTx.execute(client);
+
+  //Request the receipt
+  const projectReceipt = await projectTxResponse.getReceipt(client);
+
+  //Get the transaction consensus status
+  const projectTransactionStatus = projectReceipt.status;
+
+  console.log(
+    "The project contract append transaction consensus status is " +
+      projectTransactionStatus
+  );
+
+  // Append combined contract bin file, comBinedContractBytecode
+  const appendCombinedTx = await new FileAppendTransaction()
+    .setFileId(greenFileId)
+    .setContents(comBinedContractBytecode)
+    .setMaxTransactionFee(new Hbar(2))
+    .freezeWith(client);
+  const signCombinedTx = await appendCombinedTx.sign(operatorKey);
+  const combinedTxResponse = await signCombinedTx.execute(client);
+
+  //Request the receipt
+  const combinedReceipt = await combinedTxResponse.getReceipt(client);
+
+  //Get the transaction consensus status
+  const combinedTransactionStatus = combinedReceipt.status;
+
+  console.log(
+    "The combined contract append transaction consensus status is " +
+      combinedTransactionStatus
+  );
 }
 
 main();
