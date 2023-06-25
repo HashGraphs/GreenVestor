@@ -71,6 +71,29 @@ async function main() {
   const contractAddress = contractId.toSolidityAddress();
   console.log(` The smart contract Id is: ${contractId} \n`);
   console.log(`The smart contract address is: ${contractAddress}`);
+
+  // Call a function of the smart contract
+  const contractQuery = await new ContractCallQuery()
+    //Set the gas for the query
+    .setGas(100000)
+    //Set the contract ID to return the request for
+    .setContractId(contractId)
+    //Set the contract function to call
+    .setFunction("RATE_OF_RETURN")
+    //Set the query payment for the node returning the request
+    //This value must cover the cost of the request otherwise will fail
+    .setQueryPayment(new Hbar(2));
+
+  //Submit to a Hedera network
+  const getMessage = await contractQuery.execute(client);
+
+  // Get a string from the result at index 0
+  const message = getMessage; //.getString(0);
+
+  //Log the message
+  console.log("The contract message is: " + message);
+
+  //v2 Hedera JavaScript SDK
 }
 
 main();

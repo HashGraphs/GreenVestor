@@ -9,7 +9,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@hashgraph/hethers": "^1.2.6",
     "@hashgraph/sdk": "^2.27.0",
+    "@hashgraph/hedera-local": "^2.4.5",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.1",
     "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "hardhat": "^2.12.6"
   }
 }
